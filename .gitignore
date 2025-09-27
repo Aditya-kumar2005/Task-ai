@@ -39,3 +39,71 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Next.js build output
+/.next/
+/out/
+
+# Turbopack
+.turbo
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env*.local
+*.env
+
+# Firebase
+# If you have firebase-debug.log files
+firebase-debug.log*
+# If you have service account key files (NEVER commit these)
+*.json
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.Spotlight-V100
+.Trashes
+
+# Editor directories and files
+.idea
+.vscode/*
+!.vscode/settings.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Firebase specific files
+# Ignore all json files in the root directory if they are service accounts
+# *.json 
+# You can be more specific if needed, e.g. firebase-service-account.json
+
+# Build
+/build
+/dist
+/public/firebase-config-public.js # If you create this for SW config
+
+# Output from vercel dev
+.vercel
+
+# Output of Firebase Functions if bundled with the app
+# lib/
+# coverage/
