@@ -1,17 +1,16 @@
 
 'use client';
 
-import type { Task, Subtask, TaskStatus, TaskPriority } from '@/types';
+import type { Task, TaskStatus, TaskPriority } from '@/types';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, ListChecks, CalendarDays, Flag, AlertTriangle, Info, Wand2, Loader2 } from 'lucide-react';
+import { ListChecks, CalendarDays, Flag, AlertTriangle, Info } from 'lucide-react';
 import { format, parseISO, isPast, isToday, formatDistanceToNowStrict } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Badge, badgeVariants } from '@/components/ui/badge'; // Imported badgeVariants
+import { Badge, badgeVariants } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { VariantProps } from "class-variance-authority"; // Imported VariantProps
+import type { VariantProps } from "class-variance-authority";
+import { TaskItemActions } from './task-item-actions';
 
 interface TaskItemProps {
   task: Task;
@@ -30,7 +29,6 @@ export function TaskItem({
   onGenerateDetailedSteps,
   isLoadingDetailedSteps 
 }: TaskItemProps) {
-  const taskStatuses: TaskStatus[] = ['To Do', 'In Progress', 'Completed'];
 
   const getStatusBadgeVariant = (status: TaskStatus): VariantProps<typeof badgeVariants>['variant'] => {
     switch (status) {
@@ -43,8 +41,7 @@ export function TaskItem({
   
   const getPriorityBadgeVariant = (priority?: TaskPriority): VariantProps<typeof badgeVariants>['variant'] => {
     if (priority === 'High') return 'destructive';
-    if (priority === 'Medium') return 'default'; // Using 'default' which maps to primary color
-    // For 'Low' or undefined, let it use the 'secondary' variant for a more subdued look.
+    if (priority === 'Medium') return 'default';
     return 'secondary'; 
   };
 
@@ -56,7 +53,7 @@ export function TaskItem({
 
     if (isToday(dueDateObj) && task.status !== 'Completed') {
       text = `Due today`;
-      colorClass = 'text-orange-600 dark:text-orange-400 font-medium'; // Kept for specific emphasis
+      colorClass = 'text-orange-600 dark:text-orange-400 font-medium';
     } else if (isPast(dueDateObj) && task.status !== 'Completed') {
       text = `Overdue by ${formatDistanceToNowStrict(dueDateObj)}`;
       colorClass = 'text-destructive font-medium';
@@ -75,6 +72,9 @@ export function TaskItem({
     );
   };
 
+  const completedSubtasks = task.subtasks.filter(st => st.completed).length;
+  const totalSubtasks = task.subtasks.length;
+
   return (
     <TooltipProvider>
       <Card className="w-full shadow-lg rounded-lg overflow-hidden flex flex-col">
@@ -92,41 +92,23 @@ export function TaskItem({
             <Badge variant={getStatusBadgeVariant(task.status)} className="self-end">{task.status}</Badge>
             {task.priority && (
               <Badge variant={getPriorityBadgeVariant(task.priority)} className="self-end flex items-center gap-1">
-                <Flag className="h-3 w-3" /> {task.priority}
+                <Flag className="h-3 w-3" />
+                {task.priority}
               </Badge>
             )}
           </div>
         </CardHeader>
         <CardContent className="p-4 flex-grow">
           <p className="text-sm mb-4">{task.description}</p>
-
-          <div className="mb-4">
-            <label htmlFor={`status-${task.id}`} className="text-xs font-medium text-muted-foreground block mb-1">Task Status</label>
-            <Select
-              value={task.status}
-              onValueChange={(newStatus: TaskStatus) => onUpdateTaskStatus(task.id, newStatus)}
-            >
-              <SelectTrigger id={`status-${task.id}`} className="w-full">
-                <SelectValue placeholder="Change status" />
-              </SelectTrigger>
-              <SelectContent>
-                {taskStatuses.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
           
           {task.subtasks && task.subtasks.length > 0 && (
-            <Accordion type="single" collapsible className="w-full">
+            <Accordion type="single" collapsible className="w-full" defaultValue="subtasks">
               <AccordionItem value="subtasks">
                 <AccordionTrigger className="text-sm hover:no-underline">
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-2">
                       <ListChecks className="h-4 w-4" />
-                      Subtasks ({task.subtasks.filter(st => st.completed).length}/{task.subtasks.length} completed)
+                      Subtasks ({completedSubtasks}/{totalSubtasks} completed)
                     </div>
                     <Tooltip>
                       <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -148,6 +130,7 @@ export function TaskItem({
                           id={`subtask-${subtask.id}`}
                           checked={subtask.completed}
                           onCheckedChange={() => onToggleSubtask(task.id, subtask.id)}
+                          aria-label={`Mark subtask ${subtask.text} as ${subtask.completed ? 'incomplete' : 'complete'}`}
                         />
                         <label
                           htmlFor={`subtask-${subtask.id}`}
@@ -164,30 +147,13 @@ export function TaskItem({
           )}
         </CardContent>
         <CardFooter className="p-4 border-t bg-card flex justify-between items-center">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => onGenerateDetailedSteps(task.id)} 
-            disabled={isLoadingDetailedSteps}
-            aria-label="Generate detailed steps with AI"
-            className="text-primary border-primary/50 hover:bg-primary/10 hover:text-primary"
-          >
-            {isLoadingDetailedSteps ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Wand2 className="mr-2 h-4 w-4" />
-            )}
-            AI Steps
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => onDeleteTask(task.id)} 
-            aria-label="Delete task" 
-            className="text-destructive hover:bg-destructive/10"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+            <TaskItemActions
+                task={task}
+                onUpdateTaskStatus={onUpdateTaskStatus}
+                onGenerateDetailedSteps={onGenerateDetailedSteps}
+                isLoadingDetailedSteps={isLoadingDetailedSteps}
+                onDeleteTask={onDeleteTask}
+            />
         </CardFooter>
       </Card>
     </TooltipProvider>

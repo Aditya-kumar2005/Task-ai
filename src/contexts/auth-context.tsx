@@ -40,7 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(JSON.parse(storedUser));
       }
     } catch (error) {
-      console.error("Error reading user from localStorage", error);
       // Potentially clear corrupted storage
       localStorage.removeItem('taskai-user');
     }
@@ -53,7 +52,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.setItem('taskai-user', JSON.stringify(userData));
     } catch (error) {
-      console.error("Error saving user to localStorage", error);
     }
     // Optionally redirect after login, or let the page handle it
     // router.push('/dashboard'); 
@@ -64,7 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.removeItem('taskai-user');
     } catch (error) {
-      console.error("Error removing user from localStorage", error);
     }
     router.push('/login'); // Redirect to login after logout
   };

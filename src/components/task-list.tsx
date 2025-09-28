@@ -34,7 +34,7 @@ const sortOptions: {label: string; value: SortOptionValue; icon?: React.ElementT
 ];
 
 
-export function TaskList({ 
+export default function TaskList({ 
   tasks, 
   onUpdateTaskStatus, 
   onToggleSubtask, 

@@ -1,20 +1,25 @@
 
 'use client';
 
-import { useEffect } from 'react'; // Import useEffect
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useEffect, Suspense } from 'react';
+import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { SiteHeader } from '@/components/site-header';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle, Zap, LanguagesIcon, BrainCircuit, Loader2 } from 'lucide-react';
-import Image from 'next/image';
 import { useLanguage } from '@/contexts/language-context';
-import { useAuth } from '@/contexts/auth-context'; // Import useAuth
+import { useAuth } from '@/contexts/auth-context';
 import placeholderImages from '@/app/lib/placeholder-images.json';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const DynamicImage = dynamic(() => import('next/image'), {
+  loading: () => <Skeleton className="rounded-lg shadow-xl mx-auto w-[800px] h-[450px]" />,
+});
 
 export default function LandingPage() {
   const { t } = useLanguage();
-  const { isAuthenticated, isLoading: authLoading } = useAuth(); // Get auth state
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const heroImage = placeholderImages.landingPage.hero;
 
@@ -60,9 +65,6 @@ export default function LandingPage() {
     );
   }
 
-  // If user is authenticated, they will be redirected by useEffect. 
-  // If they are not authenticated, the landing page will render.
-  // We add this check to avoid rendering the landing page briefly before redirect.
   if (isAuthenticated) {
     return (
        <div className="min-h-screen flex flex-col items-center justify-center bg-background">
@@ -96,15 +98,17 @@ export default function LandingPage() {
               </Button>
             </div>
              <div className="mt-16">
-              <Image
-                src={heroImage.src}
-                alt={heroImage.alt}
-                width={heroImage.width}
-                height={heroImage.height}
-                className="rounded-lg shadow-xl mx-auto"
-                data-ai-hint={heroImage.hint}
-                priority
-              />
+                <Suspense fallback={<Skeleton className="rounded-lg shadow-xl mx-auto w-[800px] h-[450px]" />}>
+                  <DynamicImage
+                    src={heroImage.src}
+                    alt={heroImage.alt}
+                    width={heroImage.width}
+                    height={heroImage.height}
+                    className="rounded-lg shadow-xl mx-auto"
+                    data-ai-hint={heroImage.hint}
+                    priority
+                  />
+                </Suspense>
             </div>
           </div>
         </section>

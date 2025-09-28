@@ -1,11 +1,10 @@
-
 'use server';
 
-import { suggestSubtasks, type SuggestSubtasksInput, type SuggestSubtasksOutput } from '@/ai/flows/suggest-subtasks';
-import { suggestDetailedSteps, type SuggestDetailedStepsInput, type SuggestDetailedStepsOutput } from '@/ai/flows/suggest-detailed-steps-flow';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
-// Schemas for AI suggestions
+// --- Schemas for AI Flows ---
+
 const SuggestionInputSchema = z.object({
   taskDescription: z.string().min(1, "Task description cannot be empty."),
 });
@@ -15,7 +14,110 @@ const DetailedStepsInputSchema = z.object({
   taskDescription: z.string().min(1, "Task description cannot be empty."),
 });
 
-// Schemas for Auth (Placeholders)
+const SuggestSubtasksOutputSchema = z.object({
+  subtasks: z.array(z.string()).describe('An array of 2-4 suggested subtasks for the given task.'),
+});
+
+const SuggestDetailedStepsOutputSchema = z.object({
+  detailedSteps: z.array(z.string()).describe('An array of 3 to 5 detailed, concise, actionable sub-steps for the given task. Each step should be 3-7 words.'),
+});
+
+// --- Genkit Flow for Subtask Suggestions ---
+
+export type SuggestSubtasksInput = z.infer<typeof SuggestionInputSchema>;
+export type SuggestSubtasksOutput = z.infer<typeof SuggestSubtasksOutputSchema>;
+
+const suggestSubtasksPrompt = ai.definePrompt({
+  name: 'suggestSubtasksPrompt',
+  input: { schema: SuggestionInputSchema },
+  output: { schema: SuggestSubtasksOutputSchema },
+  prompt: `You are a helpful task management assistant. Given a task description, suggest three subtasks that would help the user break down the task into smaller, manageable steps.
+
+Task Description: {{{taskDescription}}}
+`,
+});
+
+const suggestSubtasksFlow = ai.defineFlow(
+  {
+    name: 'suggestSubtasksFlow',
+    inputSchema: SuggestionInputSchema,
+    outputSchema: SuggestSubtasksOutputSchema,
+  },
+  async (input) => {
+    const { output } = await suggestSubtasksPrompt(input);
+    return output!;
+  }
+);
+
+export async function getAISubtaskSuggestions(input: SuggestSubtasksInput): Promise<SuggestSubtasksOutput | { error: string }> {
+  try {
+    const result = await suggestSubtasksFlow(input);
+    return result;
+  } catch (error) {
+    console.error("Error fetching AI subtask suggestions:", error);
+    return { error: "Failed to fetch AI suggestions. Please try again." };
+  }
+}
+
+// --- Genkit Flow for Detailed Steps ---
+
+export type SuggestDetailedStepsInput = z.infer<typeof DetailedStepsInputSchema>;
+export type SuggestDetailedStepsOutput = z.infer<typeof SuggestDetailedStepsOutputSchema>;
+
+const suggestDetailedStepsPrompt = ai.definePrompt({
+  name: 'suggestDetailedStepsPrompt',
+  input: { schema: DetailedStepsInputSchema },
+  output: { schema: SuggestDetailedStepsOutputSchema },
+  prompt: `You are a helpful task breakdown assistant. Your goal is to generate 3 to 5 detailed, actionable sub-steps for a given task. Each step must be very concise (3-7 words) and clear.
+
+EXAMPLE:
+Task Title: Plan a birthday party
+Task Description: Organize a birthday party for a friend next month. Need to handle invitations, venue, and cake.
+
+Your Output:
+{
+  "detailedSteps": [
+    "Finalize guest list and budget",
+    "Research and book a venue",
+    "Send out digital invitations",
+    "Order a custom birthday cake",
+    "Plan party day activities"
+  ]
+}
+
+TASK TO PROCESS:
+Task Title: {{{taskTitle}}}
+Task Description: {{{taskDescription}}}
+
+Your Output:
+`,
+});
+
+const suggestDetailedStepsFlow = ai.defineFlow(
+  {
+    name: 'suggestDetailedStepsFlow',
+    inputSchema: DetailedStepsInputSchema,
+    outputSchema: SuggestDetailedStepsOutputSchema,
+  },
+  async (input) => {
+    const { output } = await suggestDetailedStepsPrompt(input);
+    return output!;
+  }
+);
+
+export async function getAIDetailedSteps(input: SuggestDetailedStepsInput): Promise<SuggestDetailedStepsOutput | { error: string }> {
+  try {
+    const result = await suggestDetailedStepsFlow(input);
+    return result;
+  } catch (error) {
+    console.error("Error fetching AI detailed steps:", error);
+    return { error: "Failed to fetch AI detailed steps. Please try again." };
+  }
+}
+
+
+// --- Schemas for Auth (Placeholders) ---
+
 const SignupInputSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
@@ -27,37 +129,6 @@ const LoginInputSchema = z.object({
   password: z.string().min(1),
 });
 export type LoginInput = z.infer<typeof LoginInputSchema>;
-
-
-// AI Suggestion Actions
-export async function getAISubtaskSuggestions(input: SuggestSubtasksInput): Promise<SuggestSubtasksOutput | { error: string }> {
-  const validationResult = SuggestionInputSchema.safeParse(input);
-  if (!validationResult.success) {
-    return { error: validationResult.error.errors.map(e => e.message).join(', ') };
-  }
-  try {
-    const result = await suggestSubtasks(validationResult.data);
-    return result;
-  } catch (error) {
-    console.error("Error fetching AI subtask suggestions:", error);
-    return { error: "Failed to fetch AI suggestions. Please try again." };
-  }
-}
-
-export async function getAIDetailedSteps(input: SuggestDetailedStepsInput): Promise<SuggestDetailedStepsOutput | { error: string }> {
-  const validationResult = DetailedStepsInputSchema.safeParse(input);
-  if (!validationResult.success) {
-    return { error: validationResult.error.errors.map(e => e.message).join(', ') };
-  }
-  try {
-    const result = await suggestDetailedSteps(validationResult.data);
-    return result;
-  } catch (error) {
-    console.error("Error fetching AI detailed steps:", error);
-    return { error: "Failed to fetch AI detailed steps. Please try again." };
-  }
-}
-
 
 // Placeholder Authentication Actions
 // In a real application, these would interact with your authentication backend (e.g., Firebase Auth, custom DB).
@@ -71,23 +142,9 @@ export async function handleSignup(
   }
 
   // --- !!! THIS IS MOCK LOGIC !!! ---
-  // --- Replace with actual signup call to your auth provider ---
   console.log('Attempting signup for:', input.email);
-  // Simulate a successful signup
-  // In a real app, you would:
-  // 1. Call your auth provider (e.g., Firebase createUserWithEmailAndPassword)
-  // 2. Handle errors from the provider (e.g., email already exists)
-  // 3. Potentially save user details to your database
   await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-
-  // Simulate success
   return { success: true, userId: `mock_user_${Date.now()}` };
-
-  // Simulate failure (example)
-  // if (input.email === "test@example.com") {
-  //   return { success: false, error: "This email is already registered (mock error)." };
-  // }
-  // return { success: true, userId: `mock_user_${Date.now()}` };
   // --- END MOCK LOGIC ---
 }
 
@@ -105,11 +162,9 @@ export async function handleLogin(
   }
 
   // --- !!! THIS IS MOCK LOGIC !!! ---
-  // --- Replace with actual login call to your auth provider ---
   console.log('Attempting login for:', input.email);
   await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
 
-  // Simulate successful login for any valid email/password format
   if (input.email && input.password) {
     return { 
       success: true, 
@@ -120,7 +175,6 @@ export async function handleLogin(
     };
   }
 
-  // Simulate failed login (example)
   return { success: false, error: "Invalid credentials (mock error)." };
   // --- END MOCK LOGIC ---
 }
