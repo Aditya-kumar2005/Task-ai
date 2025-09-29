@@ -1,8 +1,6 @@
-
 'use client';
 
-import { useEffect, Suspense } from 'react';
-import dynamic from 'next/dynamic';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { SiteHeader } from '@/components/site-header';
@@ -10,18 +8,12 @@ import Link from 'next/link';
 import { ArrowRight, CheckCircle, Zap, LanguagesIcon, BrainCircuit, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/language-context';
 import { useAuth } from '@/contexts/auth-context';
-import placeholderImages from '@/app/lib/placeholder-images.json';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const DynamicImage = dynamic(() => import('next/image'), {
-  loading: () => <Skeleton className="rounded-lg shadow-xl mx-auto w-[800px] h-[450px]" />,
-});
 
 export default function LandingPage() {
   const { t } = useLanguage();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
-  const heroImage = placeholderImages.landingPage.hero;
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -96,19 +88,6 @@ export default function LandingPage() {
               <Button asChild variant="outline" size="lg">
                 <Link href="/login">Login</Link>
               </Button>
-            </div>
-             <div className="mt-16">
-                <Suspense fallback={<Skeleton className="rounded-lg shadow-xl mx-auto w-[800px] h-[450px]" />}>
-                  <DynamicImage
-                    src={heroImage.src}
-                    alt={heroImage.alt}
-                    width={heroImage.width}
-                    height={heroImage.height}
-                    className="rounded-lg shadow-xl mx-auto"
-                    data-ai-hint={heroImage.hint}
-                    priority
-                  />
-                </Suspense>
             </div>
           </div>
         </section>
