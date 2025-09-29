@@ -11,5 +11,5 @@ import { z } from "zod";
 // The plugin will automatically use the GEMINI_API_KEY from your .env file.
 export const ai = genkit({
   plugins: [googleAI()],
-  enableTracingAndMetrics: true,
+  // enableTracingAndMetrics: true,
 });
